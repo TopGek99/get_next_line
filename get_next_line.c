@@ -11,80 +11,80 @@
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+#include <stdio.h>
 
-char	*ft_strchr(const char *s, int c)
+static int	found_newline(char *s)
 {
 	int	i;
 
 	i = 0;
-	while (s[i])
+	while(s[i])
 	{
-		if (s[i] == c)
-			return ((char *)s + i);
+		if (s[i] == '\n')
+			return (i);
 		i++;
 	}
-	if (c == '\0')
-		return ((char *)s + i);
-	return (NULL);
+	return (-1);
 }
 
-static char *first_line(char *s)
+static void	trim_line(char *s)
 {
-	int		i;
-	char	*new;
+	int	i;
 
-	new = malloc(sizeof(char) * ft_strlen(s));
 	i = 0;
-	new[i] = s[i];
-	i++;
-	while (s[i - 1] != '\n')
-	{
-		new[i] = s[i];
+	while(s[i] != '\n')
 		i++;
+	while (s[++i])
+	{
+		s[i] = '\0';
 	}
-	return (new);
 }
 
 char	*get_next_line(int fd)
 {
-	static char	*buf;
-	char		*line;
-	char		*temp;
-	int			read_result;	
-	int			i;
-	int			contain_new_line;
+	int		read_result;
+	int		contains_newline;
+    int     lines_read;
+	char	*buf;
+	char	*temp;
+	char	*line;
 
-	line = malloc(BUFFER_SIZE * sizeof(char));
-	buf = malloc(BUFFER_SIZE * sizeof(char));
-	if (!line || !buf)
-		return (NULL);
-	contain_new_line = 0;
-	read_result = 1;
-	while (!contain_new_line && read_result > 0)
+	line = malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	read_result = read(fd, line, BUFFER_SIZE);
+    line[read_result] = '\0';
+	buf = NULL;
+    lines_read = 0;
+	while (read_result > 0)
 	{
-		i = 0;
-		read_result = read(fd, line, BUFFER_SIZE);
-		if (read_result <= 0)
-			break ;
-		if (ft_strchr(line, '\n'))
+		if (!buf)
+        {
+            buf = malloc(sizeof(char) * (BUFFER_SIZE + 1));
+            ft_strlcpy(buf, line, BUFFER_SIZE + 1);
+        }
+		else
 		{
-			contain_new_line = 1;
-			temp = line;
-			line = first_line(line);
+			temp = buf;
+			buf = ft_strjoin(temp, line);
 			free(temp);
 		}
-		if (!buf)
-			buf = ft_strdup("");
-		temp = buf;
-		buf = ft_strjoin(buf, line);
-		free(temp);
+		contains_newline = found_newline(buf);
+		if (contains_newline >= 0)
+		{
+			if (contains_newline != BUFFER_SIZE - 1)
+				trim_line(buf);
+			free(line);
+			return (buf);
+		}
 		ft_bzero(line, BUFFER_SIZE);
+		read_result = read(fd, line, BUFFER_SIZE);
+        lines_read++;
 	}
-	free(line);
-	if (read_result <= 0)
-	{
-		free(buf);
-		return (NULL);
-	}
-	return (buf);
+    if (lines_read > 0)
+    {
+        free(line);
+        return (buf);
+    }
+    free(line);
+	free(buf);
+	return (NULL);
 }
