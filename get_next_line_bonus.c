@@ -14,18 +14,20 @@
 
 void	end_free(char *mem, int end)
 {
-	if (end == 0)
+	if (end == 0 && mem)
 		free(mem);
 }
 
 char	*get_next_line(int fd)
 {
-	char	*buf;
-	char	*temp;
-	char	*line;
-	int		end_of_buf;
+	char		*buf;
+	char		*temp;
+	static char	*line;
+	int			end_of_buf;
 
 	line = malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	if (!line)
+		return (NULL);
 	end_of_buf = get_buffer(fd, line, BUFFER_SIZE);
 	end_free(line, end_of_buf);
 	if (end_of_buf == 0)
